@@ -5,6 +5,13 @@ import (
 	"time"
 )
 
+func worker(woekerId int, data chan int) {
+	for x := range data {
+		fmt.Println("Worker %d", woekerId, "received", x)
+		time.Sleep(time.Second)
+	}
+}
+
 //const (
 //	RedColorRGB   = 0xFF0000
 //	GreenColorRGB = 0x00FF00
@@ -28,45 +35,44 @@ func main() {
 	//   x := 5
 	//   x = inc(x)
 
-	ch := make(chan string)
-
-	go func() {
-		ch <- "Hello world ! Anonymous function and Channel"
-	}()
-
-	msg := <-ch
-	fmt.Println(msg)
-
-	fmt.Println("Hello, world!")
-	println("Hello, world!")
-	go contado(10)
-	go contado(5)
-
-	var y int
-	y = 12 % 5
-
-	println(y)
-
-	var s []string
+	//ch := make(chan string)
+	//
+	//go func() {
+	//	ch <- "Hello world ! Anonymous function and Channel"
+	//}()
+	//
+	//msg := <-ch
+	//fmt.Println(msg)
+	//
+	//fmt.Println("Hello, world!")
+	//println("Hello, world!")
+	//go contado(10)
+	//go contado(5)
+	//
+	//var y int
+	//y = 12 % 5
+	//
+	//println(y)
+	//
+	//var s []string
 
 	// Crescendo de 1 até 30
-	for i := 1; i <= 30; i++ {
-		s = append(s, "*")
-		fmt.Println(s)
-	}
+	//for i := 1; i <= 30; i++ {
+	//	s = append(s, "*")
+	//	fmt.Println(s)
+	//}
 
 	// Diminuindo de 30 até 0
-	for i := 30; i > 0; i-- {
-		s = s[:i-1] // Reduz o slice
-		fmt.Println(s)
-	}
+	//for i := 30; i > 0; i-- {
+	//	s = s[:i-1] // Reduz o slice
+	//	fmt.Println(s)
+	//}
 
 	//DIRETA
 	//var car1 car
 	//car1.Model = "Opala"
 	//car1.getHorsePower()
 	//
-	////
 	//var car2 car = struct {
 	//	Make   string
 	//	Model  string
@@ -79,6 +85,23 @@ func main() {
 
 	//carFrunFrun(car1, car2)
 	//verifyCarTypeAndColor(car1, car2)
+
+	data := make(chan int)
+	go worker(1, data)
+	go worker(2, data)
+	go worker(3, data)
+
+	for i := range 10 {
+		data <- i
+		fmt.Println(i)
+	}
+
+	for i := range 100 {
+		data <- i
+		fmt.Println(i)
+	}
+
+	time.Sleep(10 * time.Second)
 }
 
 //func inc(x int)(int, error) {
@@ -105,7 +128,7 @@ func main() {
 //
 //}
 
-//
+// Verifica Tipo carro e cor
 //func verifyCarTypeAndColor(cars ...car) {
 //	for _, c := range cars {
 //		if c.Model == "Opala" && c.getHorsePower() == 1800 && c.getRgb() == 0xFF0000 { // Red color in RGB
