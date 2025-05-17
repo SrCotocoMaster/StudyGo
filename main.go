@@ -1,199 +1,145 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 )
 
-func worker(woekerId int, data chan int) {
-	for x := range data {
-		fmt.Println("Worker %d", woekerId, "received", x)
-		time.Sleep(time.Second)
-	}
-}
-
-//const (
-//	RedColorRGB   = 0xFF0000
-//	GreenColorRGB = 0x00FF00
-//)
-//
-//func (c car) getColorRgb() int {
-//	if c.Model == "Opala" {
-//		return RedColorRGB
-//	}
-//	return GreenColorRGB
-//}
-
-func contado(n int) {
-	for i := range n {
-		fmt.Println(i)
-		time.Sleep(1 * time.Second)
-	}
-}
-
 func main() {
-	//   x := 5
-	//   x = inc(x)
+	cep := "84350000"
 
-	//ch := make(chan string)
-	//
-	//go func() {
-	//	ch <- "Hello world ! Anonymous function and Channel"
-	//}()
-	//
-	//msg := <-ch
-	//fmt.Println(msg)
-	//
-	//fmt.Println("Hello, world!")
-	//println("Hello, world!")
-	//go contado(10)
-	//go contado(5)
-	//
-	//var y int
-	//y = 12 % 5
-	//
-	//println(y)
-	//
-	//var s []string
+	c1 := make(chan responseCEP)
+	c2 := make(chan responseCEP)
 
-	// Crescendo de 1 até 30
-	//for i := 1; i <= 30; i++ {
-	//	s = append(s, "*")
-	//	fmt.Println(s)
-	//}
+	go brasilApi(c1, cep)
+	go viaCep(c2, cep)
 
-	// Diminuindo de 30 até 0
-	//for i := 30; i > 0; i-- {
-	//	s = s[:i-1] // Reduz o slice
-	//	fmt.Println(s)
-	//}
+	select {
+	case resp := <-c1:
+		displayAddress(resp)
 
-	//DIRETA
-	//var car1 car
-	//car1.Model = "Opala"
-	//car1.getHorsePower()
-	//
-	//var car2 car = struct {
-	//	Make   string
-	//	Model  string
-	//	Height int
-	//	Width  int
-	//}{Make: "pokemon", Model: "Marea", Height: 1800, Width: 3000}
+	case resp := <-c2:
+		displayAddress(resp)
 
-	//car2.getRgb()
-	//car2.getHorsePower()
-
-	//carFrunFrun(car1, car2)
-	//verifyCarTypeAndColor(car1, car2)
-
-	//data := make(chan int)
-	//go worker(1, data)
-	//go worker(2, data)
-	//go worker(3, data)
-	//
-	//for i := range 10 {
-	//	data <- i
-	//	fmt.Println(i)
-	//}
-	//
-	//for i := range 100 {
-	//	data <- i
-	//	fmt.Println(i)
-	//}
-	//
-	//time.Sleep(10 * time.Second)
-
-	ch := make(chan string)
-
-	//ch <- "mundo"
-	//ch <- "mundo2"
-	go func() {
-		for {
-			fmt.Println(<-ch)
-		}
-	}()
-
-	ch <- "hello"
-	//fmt.Println(<-ch)
-	//fmt.Println(<-ch)
-}
-
-//func inc(x int)(int, error) {
-//  x++
-//
-//  fmt.Println(x)
-//  if(x == 6){
-//    return nil
-//  }
-//  return x
-//}
-
-//func carFrunFrun(carFrun ...car) {
-//	for _, c := range carFrun {
-//		switch c.Model {
-//		case "Opala":
-//			fmt.Println("Frun Frun")
-//		case "Marea":
-//			fmt.Println("Don`t Frun Frun")
-//		default:
-//			fmt.Printf("Unknown model: %s\n", c.Model)
-//		}
-//	}
-//
-//}
-
-// Verifica Tipo carro e cor
-//func verifyCarTypeAndColor(cars ...car) {
-//	for _, c := range cars {
-//		if c.Model == "Opala" && c.getHorsePower() == 1800 && c.getRgb() == 0xFF0000 { // Red color in RGB
-//			fmt.Printf("The car %s is a Sport car - Frun Frun!\n", c.Model)
-//		} else {
-//			fmt.Printf("The car %s is not a Sport car. It is Green.\n", c.Model)
-//		}
-//	}
-//}
-
-// Exemplo de loop "for" básico com uma variável de contagem
-func simpleForLoop() {
-	for i := 0; i < 5; i++ {
-		fmt.Println("Contagem:", i)
+	case <-time.After(time.Second * 1):
+		fmt.Println("Timeout: Both APIs took too long to respond")
 	}
 }
 
-// Exemplo de loop "for" simulando um "while"
-func whileLoop() {
-	x := 0
-	for x < 10 {
-		fmt.Println("Valor de x:", x)
-		x++
-	}
+func displayAddress(resp responseCEP) {
+	fmt.Println("Resposta via ", resp.Source)
+	fmt.Println("CEP:", resp.Cep)
+	fmt.Println("Logradouro:", resp.Logradouro)
+	fmt.Println("Complemento:", resp.Complemento)
+	fmt.Println("Bairro:", resp.Bairro)
+	fmt.Println("Localidade:", resp.Localidade)
+	fmt.Println("UF:", resp.UF)
+	fmt.Println("IBGE:", resp.IBGE)
+	fmt.Println("DDD:", resp.DDD)
 }
 
-// Exemplo de loop "for" com range percorrendo um slice
-func rangeLoop() {
-	cars := []string{"Opala", "Marea", "Fusca"}
-	for index, car := range cars {
-		fmt.Printf("Carro %d: %s\n", index+1, car)
-	}
+type brasilApiResponse struct {
+	Cep          string `json:"cep"`
+	State        string `json:"state"`
+	City         string `json:"city"`
+	Neighborhood string `json:"neighborhood"`
+	Street       string `json:"street"`
+	Service      string `json:"service"`
 }
 
-// Exemplo de loop "for" percorrendo um map
-func forMap() {
-	carColors := map[string]string{"Opala": "Red", "Marea": "Green", "Fusca": "Blue"}
-	for model, color := range carColors {
-		fmt.Printf("O modelo %s tem a cor %s\n", model, color)
+func brasilApi(c chan responseCEP, cep string) {
+	client := &http.Client{
+		Timeout: 900 * time.Millisecond,
 	}
+
+	url := fmt.Sprintf("https://brasilapi.com.br/api/cep/v1/%s", cep)
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Println("Error ao fazer a request para Brasil API:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Brasil API returned non-OK status: %d\n", resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Erro ao ler Brasil API response:", err)
+		return
+	}
+
+	var errorResp struct {
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &errorResp); err == nil && errorResp.Message != "" {
+		fmt.Println("Brasil API returned error:", errorResp.Message)
+		return
+	}
+
+	var brasilResp brasilApiResponse
+	if err := json.Unmarshal(body, &brasilResp); err != nil {
+		fmt.Println("Error parsing Brasil API response:", err)
+		return
+	}
+
+	if brasilResp.Cep == "" {
+		fmt.Println("Brasil API returned empty CEP")
+		return
+	}
+
+	cepResp := responseCEP{
+		Cep:        brasilResp.Cep,
+		Logradouro: brasilResp.Street,
+		Bairro:     brasilResp.Neighborhood,
+		Localidade: brasilResp.City,
+		UF:         brasilResp.State,
+		Source:     "Brasil API",
+	}
+
+	c <- cepResp
 }
 
-// Exemplo de loop "for" infinito com uma condição de parada
-func forLoopInfinite() {
-	z := 0
-	for {
-		fmt.Println("Valor de z:", z)
-		z++
-		if z == 5 {
-			fmt.Println("Parando o loop!")
-			break
-		}
+func viaCep(c chan responseCEP, cep string) {
+	client := &http.Client{
+		Timeout: 900 * time.Millisecond,
 	}
+
+	url := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", cep)
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Println("Error ao fazer a request para ViaCEP API:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("ViaCEP API returned non-OK status: %d\n", resp.StatusCode)
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error ao ler ViaCEP API response:", err)
+		return
+	}
+
+	if string(body) == `{"erro": true}` || string(body) == `{"erro":true}` {
+		fmt.Println("ViaCEP API retorn error: CEP nao encontrado")
+		return
+	}
+
+	var cepResp responseCEP
+	if err := json.Unmarshal(body, &cepResp); err != nil {
+		fmt.Println("Error parsing ViaCEP API response:", err)
+		return
+	}
+
+	cepResp.Source = "ViaCEP API"
+	c <- cepResp
 }
