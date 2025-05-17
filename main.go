@@ -86,22 +86,36 @@ func main() {
 	//carFrunFrun(car1, car2)
 	//verifyCarTypeAndColor(car1, car2)
 
-	data := make(chan int)
-	go worker(1, data)
-	go worker(2, data)
-	go worker(3, data)
+	//data := make(chan int)
+	//go worker(1, data)
+	//go worker(2, data)
+	//go worker(3, data)
+	//
+	//for i := range 10 {
+	//	data <- i
+	//	fmt.Println(i)
+	//}
+	//
+	//for i := range 100 {
+	//	data <- i
+	//	fmt.Println(i)
+	//}
+	//
+	//time.Sleep(10 * time.Second)
 
-	for i := range 10 {
-		data <- i
-		fmt.Println(i)
-	}
+	ch := make(chan string)
 
-	for i := range 100 {
-		data <- i
-		fmt.Println(i)
-	}
+	//ch <- "mundo"
+	//ch <- "mundo2"
+	go func() {
+		for {
+			fmt.Println(<-ch)
+		}
+	}()
 
-	time.Sleep(10 * time.Second)
+	ch <- "hello"
+	//fmt.Println(<-ch)
+	//fmt.Println(<-ch)
 }
 
 //func inc(x int)(int, error) {
