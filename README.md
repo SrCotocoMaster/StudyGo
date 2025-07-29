@@ -1,17 +1,27 @@
-# CEP Lookup Service
+# Sistema de Cotação do Dólar
 
-Este é um serviço simples de consulta de CEP (Código de Endereçamento Postal) brasileiro que utiliza duas APIs diferentes (Brasil API e ViaCEP API) para obter informações de endereço a partir de um CEP.
+Este é um sistema cliente-servidor em Go para consulta de cotação do dólar americano (USD) em relação ao real brasileiro (BRL). O sistema é composto por um servidor HTTP que consome uma API externa de cotação e um cliente que solicita a cotação ao servidor.
 
 ## Funcionalidades
 
-- Consulta concorrente em duas APIs de CEP diferentes
-- Retorna o resultado da primeira API que responder
-- Timeout de 1 segundo caso nenhuma API responda a tempo
-- Exibe informações detalhadas do endereço
+- **Servidor HTTP** (`server.go`):
+  - Endpoint `/cotacao` na porta 8080
+  - Consome a API da AwesomeAPI para obter cotação USD-BRL
+  - Armazena cada cotação em banco de dados SQLite
+  - Timeout de 200ms para chamada da API externa
+  - Timeout de 100ms para persistência no banco de dados
+  - Retorna apenas o valor "bid" da cotação em formato JSON
+
+- **Cliente HTTP** (`client.go`):
+  - Faz requisição para o servidor local
+  - Timeout de 300ms para receber resposta do servidor
+  - Salva a cotação recebida em arquivo `cotacao.txt`
+  - Formato do arquivo: "Dólar: {valor}"
 
 ## Requisitos
 
-- Go 1.22 ou superior
+- Go 1.23 ou superior
+- Conexão com a internet (para API externa)
 
 ## Instalação
 
@@ -22,95 +32,120 @@ git clone https://seu-repositorio/StudyGo.git
 cd StudyGo
 ```
 
-2. Não há dependências externas para instalar, pois o projeto utiliza apenas a biblioteca padrão do Go.
-
-## Como Executar
-
-Para executar a aplicação com o CEP padrão (84350000):
+2. Instale as dependências:
 
 ```bash
-go run .
-```
-
-ou
-
-```bash
-go run main.go responseCEP.go
-```
-
-### Modificando o CEP
-
-Para consultar um CEP diferente, você precisa modificar a linha 12 no arquivo `main.go`:
-
-```go
-cep := "84350000" // Altere para o CEP desejado
-```
-
-Após a modificação, execute a aplicação novamente.
-
-## Exemplo de Saída
-
-Quando a consulta é bem-sucedida, você verá uma saída semelhante a esta:
-
-```
-Resposta via Brasil API
-CEP: 84350-000
-Logradouro: 
-Complemento: 
-Bairro: 
-Localidade: Ortigueira
-UF: PR
-IBGE: 
-DDD: 
-```
-
-ou
-
-```
-Resposta via ViaCEP API
-CEP: 84350-000
-Logradouro: 
-Complemento: 
-Bairro: 
-Localidade: Ortigueira
-UF: PR
-IBGE: 4117305
-DDD: 42
+go mod tidy
 ```
 
 ## Como Testar
 
-### Testando com Diferentes CEPs
+### Passo 1: Executar o Servidor
 
-1. Modifique o CEP no arquivo `main.go` (linha 12)
-2. Execute a aplicação para verificar se o novo CEP retorna resultados válidos
+Abra um terminal e execute o servidor:
 
-### Testando o Timeout
-
-O aplicativo tem um timeout configurado para 1 segundo. Se ambas as APIs demorarem mais que isso para responder, você verá a mensagem:
-
-```
-Timeout: Both APIs took too long to respond
+```bash
+go run server.go
 ```
 
-### Testando com CEP Inválido
+Você deve ver a mensagem:
+```
+Server running on port 8080...
+```
 
-Para testar o comportamento com um CEP inválido, modifique o CEP para um valor que não existe (por exemplo, "00000000") e execute a aplicação.
+O servidor ficará rodando e aguardando requisições. Deixe este terminal aberto.
 
-## APIs Utilizadas
+### Passo 2: Executar o Cliente
 
-### Brasil API
+Abra um **segundo terminal** (mantendo o servidor rodando no primeiro) e execute o cliente:
 
-- URL: `https://brasilapi.com.br/api/cep/v1/{cep}`
-- Documentação: [Brasil API - CEP](https://brasilapi.com.br/docs)
+```bash
+go run client.go
+```
 
-### ViaCEP API
+### Resultado Esperado
 
-- URL: `http://viacep.com.br/ws/{cep}/json/`
-- Documentação: [ViaCEP](https://viacep.com.br/)
+Se tudo funcionar corretamente, você verá no terminal do cliente:
+
+```
+Raw server response: {"bid":"5.1234"}
+Parsed bid value: 5.1234
+Cotação do dólar salva com sucesso!
+Dólar: 5.1234
+```
+
+E no terminal do servidor, você verá logs similares a:
+
+```
+API Response: {"USDBRL":{"code":"USD","codein":"BRL","name":"Dólar Americano/Real Brasileiro","high":"5.1500","low":"5.1000","varBid":"0.0234","pctChange":"0.46","bid":"5.1234","ask":"5.1240","timestamp":"1640995200","create_date":"2021-12-31 18:00:00"}}
+Parsed Bid: 5.1234
+```
+
+### Verificar Arquivo Gerado
+
+Após a execução do cliente, verifique se foi criado o arquivo `cotacao.txt`:
+
+```bash
+type cotacao.txt
+```
+
+O conteúdo deve ser algo como:
+```
+Dólar: 5.1234
+```
+
+### Verificar Banco de Dados
+
+O servidor cria automaticamente um banco SQLite (`cotacao.db`) e armazena cada cotação. Para verificar:
+
+```bash
+# Se você tiver SQLite instalado
+sqlite3 cotacao.db "SELECT * FROM cotacoes;"
+```
+
+## Testando Cenários de Erro
+
+### Teste de Timeout do Cliente
+
+Para testar o timeout do cliente (300ms), pare o servidor e execute o cliente:
+
+```bash
+go run client.go
+```
+
+Você deve ver um erro de conexão recusada.
+
+### Teste de Timeout da API Externa
+
+O servidor tem timeout de 200ms para a API externa. Se a API estiver lenta, você verá logs de erro no servidor.
+
+### Teste de Timeout do Banco de Dados
+
+O servidor tem timeout de 100ms para operações de banco. Em caso de problemas, você verá logs de erro, mas a cotação ainda será retornada ao cliente.
 
 ## Estrutura do Projeto
 
-- `main.go`: Contém a lógica principal da aplicação, incluindo as funções para consultar as APIs
-- `responseCEP.go`: Define a estrutura de dados para armazenar as respostas das APIs
-- `go.mod`: Arquivo de configuração do módulo Go
+- `server.go`: Servidor HTTP que consome API externa e persiste dados
+- `client.go`: Cliente que solicita cotação e salva em arquivo
+- `cotacao.db`: Banco de dados SQLite (criado automaticamente)
+- `cotacao.txt`: Arquivo com a última cotação (criado pelo cliente)
+- `go.mod`: Configuração do módulo Go com dependências
+
+## API Externa Utilizada
+
+- **AwesomeAPI**: `https://economia.awesomeapi.com.br/json/last/USD-BRL`
+- Retorna cotação atual do dólar americano em reais brasileiros
+
+## Troubleshooting
+
+### Erro "connection refused"
+- Certifique-se de que o servidor está rodando antes de executar o cliente
+- Verifique se a porta 8080 não está sendo usada por outro processo
+
+### Erro "context deadline exceeded"
+- Verifique sua conexão com a internet
+- A API externa pode estar temporariamente indisponível
+
+### Erro de permissão no arquivo
+- Certifique-se de ter permissão de escrita no diretório atual
+- Verifique se o arquivo `cotacao.txt` não está sendo usado por outro programa
