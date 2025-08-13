@@ -92,8 +92,8 @@ func handleExchangeRate(db *sql.DB) http.HandlerFunc {
 
 // Função que busca a cotação do dólar na API externa
 func getExchangeRate() (*ExchangeRate, error) {
-	// Cria contexto com timeout - aumentado para lidar com limitação de taxa da API
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	// Cria contexto com timeout - máximo de 200ms para chamar a API de cotação
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 	defer cancel()
 
 	// Cria requisição HTTP com contexto
@@ -177,8 +177,8 @@ func getExchangeRate() (*ExchangeRate, error) {
 
 // Função que salva a cotação no banco de dados SQLite
 func saveExchangeRate(db *sql.DB, bid string) error {
-	// Cria contexto com timeout para operação de banco de dados
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	// Cria contexto com timeout para operação de banco de dados - máximo de 10ms
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
 	defer cancel()
 
 	// Prepara statement SQL para inserção

@@ -9,7 +9,7 @@ Este é um sistema cliente-servidor em Go para consulta de cotação do dólar a
   - Consome a API da AwesomeAPI para obter cotação USD-BRL
   - Armazena cada cotação em banco de dados SQLite
   - Timeout de 200ms para chamada da API externa
-  - Timeout de 100ms para persistência no banco de dados
+  - Timeout de 10ms para persistência no banco de dados
   - Retorna apenas o valor "bid" da cotação em formato JSON
 
 - **Cliente HTTP** (`client.go`):
@@ -121,7 +121,7 @@ O servidor tem timeout de 200ms para a API externa. Se a API estiver lenta, voc�
 
 ### Teste de Timeout do Banco de Dados
 
-O servidor tem timeout de 100ms para operações de banco. Em caso de problemas, você verá logs de erro, mas a cotação ainda será retornada ao cliente.
+O servidor tem timeout de 10ms para operações de banco. Em caso de problemas, você verá logs de erro, mas a cotação ainda será retornada ao cliente.
 
 ## Estrutura do Projeto
 
